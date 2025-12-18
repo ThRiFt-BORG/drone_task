@@ -100,7 +100,11 @@ def project_ray(lat_origin, lon_origin, alt, total_r, total_p, total_y, w, h, fo
     # D_x = alt * tan(ang_x) / cos(pitch_rad + yv_rad)
     
     # Angle from Nadir (Vertical)
-    ang_y_nadir = pitch_rad + yv_rad
+    # The pitch angle is negative (e.g., -35 deg). The yv is positive at the top of the image.
+    # To get the correct angle from nadir, we must subtract the yv angle from the pitch angle.
+    # The previous logic was correct, but the sign of yv_rad needs to be inverted for the sum.
+    # Let's use the explicit subtraction to be clear:
+    ang_y_nadir = pitch_rad - yv_rad
     
     # Clip to prevent division by zero or negative distances (i.e., ray hitting the ground behind the drone)
     # We must ensure the angle from nadir is < 90 degrees (pi/2)
