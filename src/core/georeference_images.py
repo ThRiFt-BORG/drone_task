@@ -137,9 +137,6 @@ def run(metadata_path, image_dir, output_dir, cam_pitch, cam_yaw, h_fov=82.0):
     df = pd.read_csv(metadata_path)
     df = df.sort_values('filename')
     
-    # FIX: Force 4:3 Aspect Ratio (Standard Drone Sensor)
-    FORCED_ASPECT = 4.0 / 3.0 
-
     verification_rows = []
     
     for _, row in tqdm(df.iterrows(), total=df.shape[0], desc="Georeferencing", unit="img"):
@@ -169,7 +166,7 @@ def run(metadata_path, image_dir, output_dir, cam_pitch, cam_yaw, h_fov=82.0):
             
             lons, lats = project_ray(
                 row['GPS_Latitude'], row['GPS_Longitude'], row['GPS_Altitude'],
-                t_roll, t_pitch, t_yaw, w, h, h_fov, force_aspect=FORCED_ASPECT
+                t_roll, t_pitch, t_yaw, w, h, h_fov, force_aspect=None
             )
             
             # Define Corners
