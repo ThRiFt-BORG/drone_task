@@ -90,20 +90,17 @@ def project_ray(lat_origin, lon_origin, alt, total_r, total_p, total_y, w, h, fo
     # for the tan calculation, which should be the distance from the camera to the ground point.
     
     # Let's stick to the simple model but correct the pitch application.
-    # The angle from nadir is: theta = -total_p + yv. (Since total_p is negative, e.g., -35, -(-35) = 35)
-    # The angle from nadir for the center pixel (yv=0) is 35 degrees.
-    
-    # Let's assume the original intent was a simple projection onto a flat plane.
-    # The error is likely in the `alt` not being the correct distance for the tan calculation.
+    # The angle from nadir for each pixel is: theta = total_p + yv
+    # Since total_p is negative (e.g., -35 degrees), and yv is positive at the top of the image,
+    # the angle from nadir for the top of the image (yv > 0) will be closer to nadir (less negative).
+    # This is the correct sign convention for a camera pitched forward (negative pitch).
     
     # The correct formula for a pitched camera on a flat ground plane is:
-    # D_y = alt * tan(pitch_rad - yv_rad)
-    # D_x = alt * tan(ang_x) / cos(pitch_rad - yv_rad)
-    
-    # Let's implement this:
+    # D_y = alt * tan(pitch_rad + yv_rad)
+    # D_x = alt * tan(ang_x) / cos(pitch_rad + yv_rad)
     
     # Angle from Nadir (Vertical)
-    ang_y_nadir = pitch_rad - yv_rad
+    ang_y_nadir = pitch_rad + yv_rad
     
     # Clip to prevent division by zero or negative distances (i.e., ray hitting the ground behind the drone)
     # We must ensure the angle from nadir is < 90 degrees (pi/2)
