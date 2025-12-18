@@ -1,0 +1,7 @@
+output_v1/**
+output_v2/**
+output/**
+src\__pycache__/**
+src\pipeline\__pycache__/**
+.drone/**
+src/core/__pycache__/**

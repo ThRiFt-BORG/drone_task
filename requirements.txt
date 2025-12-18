@@ -1,0 +1,8 @@
+pandas
+numpy
+geopy
+filterpy
+tabulate
+# Geospatial dependencies (must be installed with system libraries)
+# GDAL (requires libgdal-dev)
+# netCDF4 (optional, for NetCDF output)
