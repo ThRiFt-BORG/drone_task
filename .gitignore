@@ -3,10 +3,15 @@ output_v2/**
 output_v3/**
 output_v4/**
 output_v6_stabilized/**
-
+output_v5_stabilized/**
+output_v7_stabilized/**
+output_v8_stabilized/**
+output_v9_stabilized/**
+output_v9_stabilizd/**
 output/**
 src\__pycache__/**
 src\pipeline\__pycache__/**
 .drone/**
 src/core/__pycache__/**
 data/images/**
+1600-1940_GEOREF/**

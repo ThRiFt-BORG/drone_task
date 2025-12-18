@@ -24,13 +24,16 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 IMAGE_DIR = os.path.join(DATA_DIR, "images")
 MRK_FILE = os.path.join(DATA_DIR, "MRK_markers.csv")
 
-OUT_DIR = os.path.join(BASE_DIR, "output_v5_stabilized")
+OUT_DIR = os.path.join(BASE_DIR, "1600-1940_GEOREF")
 INTERMEDIATE_DIR = os.path.join(OUT_DIR, "intermediate")
 FINAL_TIFF_DIR = os.path.join(OUT_DIR, "geotiffs")
 FINAL_MOSAIC = os.path.join(OUT_DIR, "final_mission_mosaic.tif")
 
 # --- GEOMETRY ---
-CAMERA_PITCH = -35.0  # Set to -90.0 if you want pure top-down tiles
+# -35.0 or -45.0 is standard for Oblique flights.
+# -90.0 is for mapping (Nadir).
+# Based on your "Desired Result" image (tilted tiles), use -35.0 or -45.0.
+CAMERA_PITCH = -35.0  
 CAMERA_YAW = 90.0
 
 def main():
