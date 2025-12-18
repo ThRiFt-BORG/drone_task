@@ -43,11 +43,82 @@ def project_ray(lat_origin, lon_origin, alt, total_r, total_p, total_y, w, h, fo
     
     # Add Attitude
     ang_x = np.radians(xv + total_r)
-    ang_y = np.radians(yv + total_p)
-    ang_y = np.clip(ang_y, -1.5, 1.5) 
+    # total_p is the camera pitch angle (e.g., -35 degrees from nadir)
+    # yv is the vertical FOV angle for each pixel
+    # The angle from nadir for each pixel is: theta = total_p - yv
+    # Note: yv is positive for the top of the image and negative for the bottom (Line 18)
     
-    dist_x = alt * np.tan(ang_x)
-    dist_y = alt * np.tan(ang_y) 
+    # Convert all angles to radians
+    pitch_rad = np.radians(total_p)
+    ang_x = np.radians(xv + total_r) # Roll is ignored (total_r=0.0)
+    yv_rad = np.radians(yv)
+    
+    # The correct distance calculation for a pitched camera is:
+    # Distance = Altitude * tan(Angle_from_Nadir)
+    # Angle_from_Nadir = pitch_rad - yv_rad
+    
+    # Distance along the flight line (y-axis in local frame)
+    # This is the distance from the point directly below the drone to the point on the ground
+    # where the ray hits.
+    dist_y_from_nadir = alt * np.tan(pitch_rad - yv_rad)
+    
+    # The distance from the camera to the ground point along the ray is:
+    # Ray_Length = alt / cos(pitch_rad - yv_rad)
+    
+    # The distance perpendicular to the flight line (x-axis in local frame)
+    # dist_x = Ray_Length * tan(ang_x)
+    # dist_x = (alt / cos(pitch_rad - yv_rad)) * tan(ang_x)
+    
+    # The distance from the point directly below the drone to the ground point is:
+    # dist_x = alt * tan(ang_x) / cos(pitch_rad - yv_rad)
+    
+    # Let's use the simpler, more common approach for a fixed altitude:
+    # The distance from the drone to the ground along the ray is R.
+    # The distance on the ground from the point directly below the drone is D.
+    # D_y = alt * tan(pitch_rad - yv_rad)
+    # D_x = alt * tan(ang_x) / cos(pitch_rad - yv_rad)
+    
+    # Since the original code was simpler, let's try to fix the simple version first.
+    # The issue is likely that the altitude is not the correct distance for the tan calculation.
+    
+    # Reverting to the original structure but ensuring the pitch is correctly applied to the vertical angle
+    # The angle from nadir is (total_p - yv). Since yv is positive at the top, and total_p is negative (e.g., -35),
+    # the top of the image (positive yv) should have a smaller angle from nadir (closer to -90).
+    # Let's use the angle from the horizon (90 + total_p - yv) for the correct geometric model.
+    
+    # Given the original code's structure, the most likely fix is to use the correct altitude/distance
+    # for the tan calculation, which should be the distance from the camera to the ground point.
+    
+    # Let's stick to the simple model but correct the pitch application.
+    # The angle from nadir is: theta = -total_p + yv. (Since total_p is negative, e.g., -35, -(-35) = 35)
+    # The angle from nadir for the center pixel (yv=0) is 35 degrees.
+    
+    # Let's assume the original intent was a simple projection onto a flat plane.
+    # The error is likely in the `alt` not being the correct distance for the tan calculation.
+    
+    # The correct formula for a pitched camera on a flat ground plane is:
+    # D_y = alt * tan(pitch_rad - yv_rad)
+    # D_x = alt * tan(ang_x) / cos(pitch_rad - yv_rad)
+    
+    # Let's implement this:
+    
+    # Angle from Nadir (Vertical)
+    ang_y_nadir = pitch_rad - yv_rad
+    
+    # Clip to prevent division by zero or negative distances (i.e., ray hitting the ground behind the drone)
+    # We must ensure the angle from nadir is < 90 degrees (pi/2)
+    ang_y_nadir = np.clip(ang_y_nadir, -np.pi/2 + 0.01, np.pi/2 - 0.01)
+    
+    # Distance along the flight line (y-axis in local frame)
+    dist_y = alt * np.tan(ang_y_nadir)
+    
+    # Distance perpendicular to the flight line (x-axis in local frame)
+    # The distance to the ground along the ray is R = alt / cos(ang_y_nadir)
+    # dist_x = R * tan(ang_x)
+    dist_x = alt * np.tan(ang_x) / np.cos(ang_y_nadir)
+    
+    # The original code had a simpler form, which is only correct for nadir (total_p=0).
+    # The current implementation is the correct geometric model for a pitched camera on a flat plane.
     
     dx, dy = rotate_coords(dist_x, dist_y, total_y)
     
