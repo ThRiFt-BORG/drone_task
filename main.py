@@ -1,24 +1,7 @@
 import os
 import sys
+import glob
 from osgeo import gdal
-
-# --- CONFIGURATION ---
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "data")
-IMAGE_DIR = os.path.join(DATA_DIR, "images")
-MRK_FILE = os.path.join(DATA_DIR, "MRK_markers.csv")
-
-OUT_DIR = os.path.join(BASE_DIR, "output")
-INTERMEDIATE_DIR = os.path.join(OUT_DIR, "intermediate")
-FINAL_TIFF_DIR = os.path.join(OUT_DIR, "geotiffs")
-FINAL_MOSAIC = os.path.join(OUT_DIR, "final_mosaic.tif")
-
-# NEW: Output path for corner verification
-VERIFICATION_FILE = os.path.join(OUT_DIR, "verification_corners.csv")
-
-# Camera Setup
-CAMERA_PITCH = -30.0 
-CAMERA_YAW = 90.0
 
 # --- PROJ FIX ---
 def fix_env():
@@ -28,47 +11,66 @@ def fix_env():
     for p in paths:
         if os.path.exists(os.path.join(p, 'proj.db')):
             os.environ['PROJ_LIB'] = p
-            print(f"[System] PROJ_LIB set to {p}")
             break
 fix_env()
 
 # --- IMPORTS ---
-from src.pipeline import smart_merge, process_metadata, kalman_smoother, analysis_report
+from src.pipeline import smart_merge, process_metadata, analysis_report
 from src.core import georeference_images
 
+# --- CONFIG ---
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(BASE_DIR, "data")
+IMAGE_DIR = os.path.join(DATA_DIR, "images")
+MRK_FILE = os.path.join(DATA_DIR, "MRK_markers.csv")
+
+OUT_DIR = os.path.join(BASE_DIR, "output_v6_stabilized")
+INTERMEDIATE_DIR = os.path.join(OUT_DIR, "intermediate")
+FINAL_TIFF_DIR = os.path.join(OUT_DIR, "geotiffs")
+FINAL_MOSAIC = os.path.join(OUT_DIR, "final_mission_mosaic.tif")
+
+# --- GEOMETRY ---
+CAMERA_PITCH = -35.0  # Set to -90.0 if you want pure top-down tiles
+CAMERA_YAW = 90.0
+
 def main():
-    print("=== STARTING PIPELINE V5 (With Corner Verification) ===")
-    
-    # Setup Dirs
+    print("=== STARTING PIPELINE V6 (Stabilized Geometry) ===")
     os.makedirs(INTERMEDIATE_DIR, exist_ok=True)
     os.makedirs(FINAL_TIFF_DIR, exist_ok=True)
 
-    # 1. Metadata Fusion
+    # 1. Merge
     meta_path = os.path.join(INTERMEDIATE_DIR, "meta_raw.csv")
     smart_merge.run(MRK_FILE, IMAGE_DIR, meta_path)
 
-    # 2. Cleaning
+    # 2. Clean
     clean_path = os.path.join(INTERMEDIATE_DIR, "meta_clean.csv")
     process_metadata.run(meta_path, clean_path)
 
-    # 3. Kalman Filter
-    smooth_path = os.path.join(INTERMEDIATE_DIR, "meta_smoothed.csv")
-    kalman_smoother.run(clean_path, smooth_path)
+    # 3. Georeference
+    # (Kalman is skipped to prevent jumps)
+    georeference_images.run(
+        metadata_path=clean_path, 
+        image_dir=IMAGE_DIR, 
+        output_dir=FINAL_TIFF_DIR, 
+        cam_pitch=CAMERA_PITCH, 
+        cam_yaw=CAMERA_YAW
+    )
 
-    # 4. Georeferencing (UPDATED to pass VERIFICATION_FILE)
-    georeference_images.run(smooth_path, IMAGE_DIR, FINAL_TIFF_DIR, CAMERA_PITCH, CAMERA_YAW, VERIFICATION_FILE)
-
-    # 5. Mosaic
-    print(f"--- [Step 5] Mosaicking ---")
-    tifs = [os.path.join(FINAL_TIFF_DIR, f) for f in os.listdir(FINAL_TIFF_DIR) if f.endswith('.tif')]
+    # 4. Mosaic
+    print(f"\n--- [Step 4] Mosaicking ---")
+    tifs = glob.glob(os.path.join(FINAL_TIFF_DIR, "*.tif"))
+    
     if tifs:
-        gdal.Warp(FINAL_MOSAIC, tifs, options=gdal.WarpOptions(format="GTiff", resampleAlg="cubic", srcNodata=0))
-        print(f"Mosaic created at {FINAL_MOSAIC}")
+        options = gdal.WarpOptions(format="GTiff", resampleAlg="bilinear", srcNodata=0, callback=gdal.TermProgress_nocb)
+        gdal.Warp(FINAL_MOSAIC, tifs, options=options)
+        print(f"\nSuccess! Mosaic: {FINAL_MOSAIC}")
+    else:
+        print("No TIFFs found.")
 
-    # 6. Analysis
-    analysis_report.run(smooth_path, OUT_DIR)
+    # 5. Report
+    analysis_report.run(clean_path, OUT_DIR)
 
-    print("=== PIPELINE COMPLETE ===")
+    print("=== DONE ===")
 
 if __name__ == "__main__":
     main()

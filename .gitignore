@@ -1,7 +1,12 @@
 output_v1/**
 output_v2/**
+output_v3/**
+output_v4/**
+output_v6_stabilized/**
+
 output/**
 src\__pycache__/**
 src\pipeline\__pycache__/**
 .drone/**
 src/core/__pycache__/**
+data/images/**
