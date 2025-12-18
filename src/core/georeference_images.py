@@ -19,19 +19,24 @@ def calculate_fov_angles(w, h, h_fov_deg, force_aspect=None):
     return np.meshgrid(x_ang, y_ang)
 
 def rotate_coords(x, y, yaw_deg):
-    # Yaw in navigation is clockwise from North. Standard math rotation is counter-clockwise.
-    # We need to rotate the local (x=right, y=forward) frame to the global (x=East, y=North) frame.
-    # Since the input yaw_deg is clockwise from North, we need to use -yaw_deg for the standard
-    # counter-clockwise rotation matrix, or adjust the signs.
-    # A simpler way is to use the angle in the standard math sense (counter-clockwise from East).
-    # Since North=0 (Clockwise) is equivalent to East=90 (Counter-Clockwise), the conversion is:
-    # Math_Angle = 90 - Nav_Yaw.
-    # However, the current rotation is applied to (dist_x, dist_y) where dist_x is perpendicular to flight
-    # and dist_y is along flight (relative to the camera).
-    # Let's stick to the simplest fix: reversing the sign of the rotation angle.
-    rad = np.radians(-yaw_deg) # Use negative angle to convert clockwise heading to counter-clockwise rotation
+    # The local frame is (x=right, y=forward). The global frame is (x=East, y=North).
+    # Yaw is defined as clockwise from North.
+    # The rotation matrix must convert the local (x, y) into the global (dx, dy) based on the yaw.
+    # The correct angle for the standard rotation matrix (CCW from East) is: theta = 90 - yaw_deg.
+    # However, since the local frame is (x=right, y=forward), we need to swap x and y in the matrix.
+    # A simpler, more robust way is to define the rotation based on the local axes:
+    # dx = x * cos(yaw_deg) + y * sin(yaw_deg)  (East component)
+    # dy = -x * sin(yaw_deg) + y * cos(yaw_deg) (North component)
+    # This correctly maps the local right/forward to global East/North for a clockwise-from-North yaw.
+    rad = np.radians(yaw_deg)
     c, s = np.cos(rad), np.sin(rad)
-    return x*c - y*s, x*s + y*c
+    
+    # x is perpendicular to flight (East/West component)
+    # y is along flight (North/South component)
+    dx = x * s + y * c
+    dy = x * c - y * s
+    
+    return dx, dy
 
 def project_ray(lat_origin, lon_origin, alt, total_r, total_p, total_y, w, h, fov, force_aspect=None):
     xv, yv = calculate_fov_angles(w, h, fov, force_aspect)
