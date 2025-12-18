@@ -4,15 +4,15 @@ import glob
 from osgeo import gdal
 
 # --- PROJ FIX ---
-# def fix_env():
-#     venv = sys.prefix
-#     paths = [os.path.join(venv, 'Lib', 'site-packages', 'osgeo', 'data', 'proj'),
-#              os.path.join(venv, 'share', 'proj')]
-#     for p in paths:
-#         if os.path.exists(os.path.join(p, 'proj.db')):
-#             os.environ['PROJ_LIB'] = p
-#             break
-# fix_env()
+def fix_env():
+    venv = sys.prefix
+    paths = [os.path.join(venv, 'Lib', 'site-packages', 'osgeo', 'data', 'proj'),
+             os.path.join(venv, 'share', 'proj')]
+    for p in paths:
+        if os.path.exists(os.path.join(p, 'proj.db')):
+            os.environ['PROJ_LIB'] = p
+            break
+fix_env()
 
 # --- IMPORTS ---
 from src.pipeline import smart_merge, process_metadata, analysis_report, kalman_smoother
