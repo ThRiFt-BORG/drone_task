@@ -4,18 +4,18 @@ import glob
 from osgeo import gdal
 
 # --- PROJ FIX ---
-def fix_env():
-    venv = sys.prefix
-    paths = [os.path.join(venv, 'Lib', 'site-packages', 'osgeo', 'data', 'proj'),
-             os.path.join(venv, 'share', 'proj')]
-    for p in paths:
-        if os.path.exists(os.path.join(p, 'proj.db')):
-            os.environ['PROJ_LIB'] = p
-            break
-fix_env()
+# def fix_env():
+#     venv = sys.prefix
+#     paths = [os.path.join(venv, 'Lib', 'site-packages', 'osgeo', 'data', 'proj'),
+#              os.path.join(venv, 'share', 'proj')]
+#     for p in paths:
+#         if os.path.exists(os.path.join(p, 'proj.db')):
+#             os.environ['PROJ_LIB'] = p
+#             break
+# fix_env()
 
 # --- IMPORTS ---
-from src.pipeline import smart_merge, process_metadata, analysis_report
+from src.pipeline import smart_merge, process_metadata, analysis_report, kalman_smoother
 from src.core import georeference_images
 
 # --- CONFIG ---
@@ -46,18 +46,21 @@ def main():
     clean_path = os.path.join(INTERMEDIATE_DIR, "meta_clean.csv")
     process_metadata.run(meta_path, clean_path)
 
-    # 3. Georeference
-    # (Kalman is skipped to prevent jumps)
+    # 3. Kalman Refinement (Re-integrated to stabilize position sequence)
+    kalman_path = os.path.join(INTERMEDIATE_DIR, "meta_kalman.csv")
+    kalman_smoother.run(clean_path, kalman_path)
+
+    # 4. Georeference
     georeference_images.run(
-        metadata_path=clean_path, 
+        metadata_path=kalman_path, 
         image_dir=IMAGE_DIR, 
         output_dir=FINAL_TIFF_DIR, 
         cam_pitch=CAMERA_PITCH, 
         cam_yaw=CAMERA_YAW
     )
 
-    # 4. Mosaic
-    print(f"\n--- [Step 4] Mosaicking ---")
+    # 5. Mosaic
+    print(f"\n--- [Step 5] Mosaicking ---")
     tifs = glob.glob(os.path.join(FINAL_TIFF_DIR, "*.tif"))
     
     if tifs:
@@ -67,8 +70,8 @@ def main():
     else:
         print("No TIFFs found.")
 
-    # 5. Report
-    analysis_report.run(clean_path, OUT_DIR)
+    # 6. Report
+    analysis_report.run(kalman_path, OUT_DIR)
 
     print("=== DONE ===")
 
