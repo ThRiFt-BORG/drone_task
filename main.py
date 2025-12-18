@@ -24,7 +24,7 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 IMAGE_DIR = os.path.join(DATA_DIR, "images")
 MRK_FILE = os.path.join(DATA_DIR, "MRK_markers.csv")
 
-OUT_DIR = os.path.join(BASE_DIR, "output_v6_stabilized")
+OUT_DIR = os.path.join(BASE_DIR, "output_v5_stabilized")
 INTERMEDIATE_DIR = os.path.join(OUT_DIR, "intermediate")
 FINAL_TIFF_DIR = os.path.join(OUT_DIR, "geotiffs")
 FINAL_MOSAIC = os.path.join(OUT_DIR, "final_mission_mosaic.tif")
